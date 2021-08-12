@@ -1,0 +1,55 @@
+#pragma once
+
+#include "MM_Maybe.h"
+#include <QtOpcUa>
+#include <QMutex>
+#include <QUrl>
+#include <QVariant>
+#include <QObject>
+
+class QOpcUaProvider;
+
+class MD_OpcUaClientDevice : public QObject
+{
+	Q_OBJECT
+
+public:
+	MD_OpcUaClientDevice(QObject *_parent = nullptr);
+	~MD_OpcUaClientDevice();
+
+public:
+	QUrl getServerUrl();
+
+signals:
+	void sig_connected(const MP_Public::MM_MaybeOk& _isConnectOK);
+	void sig_disconnected();
+	void sig_errorChanged(QOpcUaClient::ClientError _error);
+	void sig_stateChanged(QOpcUaClient::ClientState _state);
+	void sig_updateArrayNamespaceFinished(const MP_Public::MM_MaybeOk& _isSuccess);
+	void sig_readNodeAttributesFinished(QVector<QOpcUaReadResult> results, QOpcUa::UaStatusCode serviceResult);
+	void sig_writeNodeAttributesFinished(QVector<QOpcUaWriteResult> _results, QOpcUa::UaStatusCode _serviceResult);
+public slots:
+
+	MP_Public::MM_MaybeOk createClient();
+	MP_Public::MM_MaybeOk tryConnectServer(const QHostAddress& _hostAddress,quint16 _port);
+	QOpcUaClient::ClientState getConnectState();
+	void disconnectServer();
+	MP_Public::MM_MaybeOk updateArrayNamespace();
+	QOpcUaNode* getNode(const QString& _valeName);
+	quint16 getNamespaceId() const { return m_nameSpaceId;}
+	MP_Public::MM_MaybeOk readNodeAttributes(const QVector<QOpcUaReadItem>& _nodesToRead);
+	MP_Public::MM_MaybeOk writeNodeAttributes(const QVector<QOpcUaWriteItem> &_nodesToWrite);
+
+	QOpcUaNode* getNode(quint16 _namespaceId,const QString& _name);
+private:
+	MP_Public::MM_Maybe<QOpcUaClient*> getAvailableClient();
+	static QOpcUaProvider* s_opcUaProvider;
+	static QMutex s_opcUaProviderMutex;
+
+
+	QOpcUaClient* m_opcuaClient = nullptr;
+	QUrl m_serverUrl;
+	quint16 m_nameSpaceId{ 2 };
+
+	std::map<QString, QOpcUaNode*> m_nodesMap;
+};
